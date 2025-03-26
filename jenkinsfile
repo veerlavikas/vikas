@@ -1,0 +1,52 @@
+pipeline {
+    agent { label 'aws-slave' } // Runs on AWS Slave Node
+    
+    environment {
+        JAVA_HOME = "/usr/lib/jvm/java-11-openjdk"
+        MAVEN_HOME = "/opt/maven"
+        ARTIFACT_NAME = "webapp.war"
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main', url: 'https://github.com/your-repo/maven-webapp.git'
+            }
+        }
+
+        stage('Build with Maven') {
+            steps {
+                sh 'mvn clean package'
+            }
+        }
+
+        stage('Run Unit Tests') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+
+        stage('Archive Build Artifacts') {
+            steps {
+                archiveArtifacts artifacts: 'target/*.war', fingerprint: true
+            }
+        }
+
+        stage('Deploy to Tomcat') {
+            steps {
+                sh '''
+                cp target/${ARTIFACT_NAME} /opt/tomcat/webapps/
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Build and Deployment Successful!"
+        }
+        failure {
+            echo "Build Failed. Please check logs."
+        }
+    }
+}
